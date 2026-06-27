@@ -25,6 +25,21 @@ import CategoryTicker from './CategoryTicker';
 
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:5141/api/shopping';
 
+const getApiErrorMessage = async (response: Response): Promise<string> => {
+  try {
+    const payload = await response.json();
+    if (typeof payload?.message === 'string') return payload.message;
+  } catch {
+    // The API can return an empty response when it is restarting.
+  }
+
+  if (response.status === 429) {
+    return 'AI request limit eka danata exceed wela. Tikak passe ayeth try karanna.';
+  }
+
+  return 'Kapruka AI service eka danata reach karanna ba. Tikak passe ayeth try karanna.';
+};
+
 const HERO_PROMPTS = [
   {
     label: 'Find a birthday cake',
@@ -455,7 +470,7 @@ export const ChatInterface: React.FC = () => {
         if (text.startsWith('/search ')) {
           const query = text.substring(8);
           const res = await fetch(`${API_BASE}/search?q=${encodeURIComponent(query)}&responseFormat=json`);
-          if (!res.ok) throw new Error(await res.text());
+          if (!res.ok) throw new Error(await getApiErrorMessage(res));
           const data = await res.json();
           const productsList: Product[] = data.results || [];
 
@@ -465,19 +480,19 @@ export const ChatInterface: React.FC = () => {
         } else if (text.startsWith('/product ')) {
           const prodId = text.substring(9);
           const res = await fetch(`${API_BASE}/product/${prodId}?responseFormat=json`);
-          if (!res.ok) throw new Error(await res.text());
+          if (!res.ok) throw new Error(await getApiErrorMessage(res));
           const prod: Product = await res.json();
           addMessage('agent', `Here are the details for **${prod.name}**.`, 'products', { products: [prod] });
         } else if (text === '/categories') {
           const res = await fetch(`${API_BASE}/categories?depth=2&responseFormat=json`);
-          if (!res.ok) throw new Error(await res.text());
+          if (!res.ok) throw new Error(await getApiErrorMessage(res));
           const data = await res.json();
           const categoriesList: Category[] = data.categories || [];
           addMessage('agent', 'Here are the Kapruka shopping departments.', 'categories', { categories: categoriesList });
         } else if (text.startsWith('/cities ')) {
           const cityQuery = text.substring(8);
           const res = await fetch(`${API_BASE}/cities?query=${encodeURIComponent(cityQuery)}&responseFormat=json`);
-          if (!res.ok) throw new Error(await res.text());
+          if (!res.ok) throw new Error(await getApiErrorMessage(res));
           const data = await res.json();
           const cityTexts = ((data.cities || []) as CityResult[])
             .map((c) => `- **${c.name}** ${c.aliases?.length ? `(aliases: ${c.aliases.join(', ')})` : ''}`)
@@ -486,7 +501,7 @@ export const ChatInterface: React.FC = () => {
         } else if (text.startsWith('/delivery ')) {
           const cityName = text.substring(10);
           const res = await fetch(`${API_BASE}/delivery-check?city=${encodeURIComponent(cityName)}&responseFormat=json`);
-          if (!res.ok) throw new Error(await res.text());
+          if (!res.ok) throw new Error(await getApiErrorMessage(res));
           const data = await res.json();
 
           if (data.available) {
@@ -503,7 +518,7 @@ export const ChatInterface: React.FC = () => {
         } else if (text.startsWith('/track ')) {
           const orderNo = text.substring(7);
           const res = await fetch(`${API_BASE}/order-track/${orderNo}?responseFormat=json`);
-          if (!res.ok) throw new Error(await res.text());
+          if (!res.ok) throw new Error(await getApiErrorMessage(res));
           const data = await res.json();
           const itemRows = (data.items as OrderItemResult[])
             .map((it) => `- ${it.quantity}x ${it.name} - LKR ${it.selling_price.toLocaleString()}`)
@@ -526,7 +541,7 @@ export const ChatInterface: React.FC = () => {
           body: JSON.stringify({ message: text, history: historyPayload }),
         });
 
-        if (!res.ok) throw new Error(await res.text());
+        if (!res.ok) throw new Error(await getApiErrorMessage(res));
 
         const chatResponse = await res.json();
         const agentReply = chatResponse.text;
@@ -552,11 +567,7 @@ export const ChatInterface: React.FC = () => {
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
-      addMessage(
-        'agent',
-        `**Agent request failed**\n\nI could not reach the Web API at \`${API_BASE}\`. Start the .NET backend and try again.\n\n${message}`,
-        'error'
-      );
+      addMessage('agent', `Sorry, ${message}`, 'error');
     } finally {
       setIsLoading(false);
     }
