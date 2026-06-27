@@ -108,7 +108,7 @@ export const CartSidebar: React.FC<CartSidebarProps> = ({ isOpen, onClose, isPer
   };
 
   const renderContent = () => (
-    <div className="flex h-full flex-col bg-[#070b1a] text-white">
+    <div className="cart-theme-root flex h-full flex-col bg-[#070b1a] text-white">
       <header className="flex h-18 shrink-0 items-center justify-between border-b border-violet-300/16 bg-[#070b1a] px-5">
         <div>
           <h2 className="text-xl font-black tracking-tight text-white">Your Cart <span className="text-indigo-200/70">({itemCount})</span></h2>

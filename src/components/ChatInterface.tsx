@@ -7,11 +7,13 @@ import {
   Gift,
   MapPin,
   Mic,
+  Moon,
   PackageSearch,
   Search,
   ShieldCheck,
   ShoppingBag,
   Sparkles,
+  Sun,
   Truck,
   User,
   WandSparkles,
@@ -295,6 +297,11 @@ const renderFormattedMessage = (text: string) => {
 
 export const ChatInterface: React.FC = () => {
   const { cartItems, addToCart, cartCount } = useCart();
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
+    const savedTheme = window.localStorage.getItem('kapruka-theme');
+    if (savedTheme === 'dark' || savedTheme === 'light') return savedTheme;
+    return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+  });
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 'welcome',
@@ -313,6 +320,11 @@ export const ChatInterface: React.FC = () => {
   const recognitionRef = useRef<InstanceType<SpeechRecognitionConstructor> | null>(null);
   const prevCartLength = useRef(cartItems.length);
   const chatContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    window.localStorage.setItem('kapruka-theme', theme);
+  }, [theme]);
 
   const checkoutStep = useMemo(() => {
     const hasCheckoutAction = messages.some(
@@ -574,7 +586,7 @@ export const ChatInterface: React.FC = () => {
   };
 
   return (
-    <div className="app-grid-bg relative flex h-screen w-full overflow-hidden font-sans text-white">
+    <div className={`app-grid-bg relative flex h-screen w-full overflow-hidden font-sans text-white ${theme === 'light' ? 'theme-light' : 'theme-dark'}`}>
       <div className="app-ambient pointer-events-none absolute inset-0" />
       <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-violet-500 via-fuchsia-500 to-cyan-400" />
 
@@ -635,7 +647,7 @@ export const ChatInterface: React.FC = () => {
       </section>
 
       <section className="relative z-10 flex min-w-0 flex-1 flex-col">
-        <header className="mx-3 mt-3 flex h-[4.5rem] shrink-0 items-center justify-between rounded-2xl border border-violet-300/18 bg-slate-950/58 px-4 shadow-xl shadow-black/20 backdrop-blur-xl sm:px-6 lg:px-8">
+        <header className="theme-header mx-3 mt-3 flex h-[4.5rem] shrink-0 items-center justify-between rounded-2xl border border-violet-300/18 bg-slate-950/58 px-4 shadow-xl shadow-black/20 backdrop-blur-xl sm:px-6 lg:px-8">
           <div className="xl:hidden">
             <KaprukaLogo />
           </div>
@@ -658,6 +670,15 @@ export const ChatInterface: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setTheme((current) => (current === 'dark' ? 'light' : 'dark'))}
+              className="theme-toggle focus-ring flex h-10 w-10 items-center justify-center rounded-full border border-violet-300/20 bg-white/[0.04] text-indigo-100 shadow-sm transition hover:border-violet-300/50 hover:text-white"
+              title={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+              aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+            >
+              {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            </button>
             <button
               onClick={() => handleCommand('Show me all Kapruka shopping categories')}
               className="focus-ring hidden items-center gap-2 rounded-full border border-violet-300/20 bg-white/[0.04] px-4 py-2 text-xs font-extrabold text-indigo-100 shadow-sm transition hover:border-violet-300/50 hover:text-white sm:flex"
@@ -704,7 +725,7 @@ export const ChatInterface: React.FC = () => {
                       <div
                         className={`chat-glass rounded-2xl px-5 py-4 ${
                           message.sender === 'user'
-                            ? 'rounded-tr-md text-white'
+                            ? 'user-message rounded-tr-md text-white'
                             : message.type === 'error'
                               ? 'rounded-tl-md border-rose-400/40 bg-rose-500/10 text-rose-50'
                               : 'rounded-tl-md text-indigo-100'
@@ -799,7 +820,7 @@ export const ChatInterface: React.FC = () => {
               )}
             </div>
 
-            <footer className="mx-3 mb-3 shrink-0 rounded-2xl border border-violet-300/18 bg-slate-950/50 px-4 py-4 shadow-xl shadow-black/20 backdrop-blur-xl sm:px-6 lg:px-10">
+            <footer className="theme-footer mx-3 mb-3 shrink-0 rounded-2xl border border-violet-300/18 bg-slate-950/50 px-4 py-4 shadow-xl shadow-black/20 backdrop-blur-xl sm:px-6 lg:px-10">
               <div className="mb-3 flex gap-2 overflow-x-auto pb-1">
                 {getContextSuggestions().map((suggestion) => (
                   <button
@@ -887,7 +908,7 @@ export const ChatInterface: React.FC = () => {
       >
         {isCartOpen && <div className="absolute inset-0 cursor-pointer" onClick={() => setIsCartOpen(false)} />}
         <div
-          className={`relative h-full w-[90%] max-w-md border-l border-violet-300/18 bg-[#070b1a] shadow-2xl transition duration-300 ${
+          className={`theme-cart-shell relative h-full w-[90%] max-w-md border-l border-violet-300/18 bg-[#070b1a] shadow-2xl transition duration-300 ${
             isCartOpen ? 'translate-x-0' : 'translate-x-full'
           }`}
         >
