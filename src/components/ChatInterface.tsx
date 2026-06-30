@@ -821,7 +821,7 @@ export const ChatInterface: React.FC = () => {
             </div>
 
             <footer className="theme-footer mx-3 mb-3 shrink-0 rounded-2xl border border-violet-300/18 bg-slate-950/50 px-4 py-4 shadow-xl shadow-black/20 backdrop-blur-xl sm:px-6 lg:px-10">
-              <div className="mb-3 flex gap-2 overflow-x-auto pb-1">
+              <div className="-mx-2 mb-1 flex gap-2 overflow-x-auto px-2 pb-3 pt-2">
                 {getContextSuggestions().map((suggestion) => (
                   <button
                     key={suggestion.label}

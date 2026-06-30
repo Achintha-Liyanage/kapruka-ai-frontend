@@ -181,8 +181,8 @@ export const CartSidebar: React.FC<CartSidebarProps> = ({ isOpen, onClose, isPer
                     <div className="min-w-0 flex-1">
                       <h4 className="line-clamp-2 text-sm font-black leading-5 text-white">{item.name}</h4>
                       <div className="mt-2 flex flex-wrap gap-1.5">
-                        <span className="rounded-full bg-violet-500/15 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-violet-100 ring-1 ring-violet-300/20">Gift ready</span>
-                        <span className="rounded-full bg-cyan-400/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-cyan-100 ring-1 ring-cyan-300/20">ETA 2-3 days</span>
+                        <span className="cart-gift-badge rounded-full bg-violet-500/15 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-violet-100 ring-1 ring-violet-300/20">Gift ready</span>
+                        <span className="cart-eta-badge rounded-full bg-cyan-400/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-cyan-100 ring-1 ring-cyan-300/20">ETA 2-3 days</span>
                       </div>
                       <p className="mt-2 text-sm font-semibold text-white">LKR {item.price.toLocaleString()}</p>
                       <div className="mt-3 flex w-fit items-center rounded-xl border border-violet-300/18 bg-slate-950/35">

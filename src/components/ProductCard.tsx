@@ -45,7 +45,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }
   return (
     <article
       onClick={handleCardClick}
-      className="neon-card group flex h-full min-h-[23rem] cursor-pointer flex-col overflow-hidden rounded-2xl transition duration-300 hover:-translate-y-1.5 hover:scale-[1.01] hover:border-violet-300/60 hover:shadow-2xl hover:shadow-violet-950/35"
+      className="product-card neon-card group flex h-full min-h-[23rem] cursor-pointer flex-col overflow-hidden rounded-2xl transition duration-300 hover:-translate-y-1.5 hover:scale-[1.01] hover:border-violet-300/60 hover:shadow-2xl hover:shadow-violet-950/35"
     >
       <div className="relative aspect-[4/3] overflow-hidden bg-slate-900">
         <img
@@ -77,14 +77,14 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }
         </div>
       </div>
 
-      <div className="flex flex-1 flex-col p-4">
+      <div className="product-card-body flex flex-1 flex-col p-4">
         <div className="mb-3 flex items-center justify-between gap-2">
-          <span className={`rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-wide ${
+          <span className={`product-stock-badge rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-wide ${
             product.in_stock ? 'bg-emerald-400/10 text-emerald-200 ring-1 ring-emerald-300/20' : 'bg-slate-700/70 text-slate-300'
           }`}>
             {product.in_stock ? 'In stock' : 'Unavailable'}
           </span>
-          <span className="flex items-center gap-1 text-[10px] font-bold text-indigo-200/50">
+          <span className="product-delivery-label flex items-center gap-1 text-[10px] font-bold text-indigo-200/50">
             <Truck className="h-3 w-3" />
             Delivery check
           </span>
