@@ -129,7 +129,8 @@ button:disabled {
 .theme-light .user-message {
   background: linear-gradient(135deg, rgba(109, 40, 217, 0.92), rgba(79, 70, 229, 0.92));
   color: #fff !important;
-  border-color: rgba(255, 255, 255, 0.35);
+  border-color: rgba(91, 33, 182, 0.3);
+  box-shadow: 0 14px 34px rgba(79, 70, 229, 0.22) !important;
 }
 
 .theme-light .user-message p,
