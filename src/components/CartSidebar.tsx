@@ -46,11 +46,12 @@ export const CartSidebar: React.FC<CartSidebarProps> = ({ isOpen, onClose, isPer
   const [deliveryDate, setDeliveryDate] = useState('');
   const [deliveryInstructions, setDeliveryInstructions] = useState('');
   const [giftMessage, setGiftMessage] = useState('');
+  const [validatedDeliveryFee, setValidatedDeliveryFee] = useState<number | null>(null);
 
-  const deliveryFee = cartItems.length > 0 ? 350 : 0;
-  const discountVal = cartItems.length > 0 ? 1000 : 0;
-  const grandTotalLkr = Math.max(0, cartTotal + deliveryFee - discountVal);
+  const deliveryFee = validatedDeliveryFee ?? 0;
+  const grandTotalLkr = Math.max(0, cartTotal + deliveryFee);
   const itemCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
+  const today = new Date().toLocaleDateString('en-CA');
 
   const handlePlaceOrder = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -58,6 +59,25 @@ export const CartSidebar: React.FC<CartSidebarProps> = ({ isOpen, onClose, isPer
     setErrorMsg('');
 
     try {
+      if (deliveryDate < today) {
+        throw new Error('Please choose today or a future delivery date.');
+      }
+
+      const deliveryParams = new URLSearchParams({
+        city: deliveryCity,
+        date: deliveryDate,
+        productId: cartItems[0]?.product_id ?? '',
+        responseFormat: 'json',
+      });
+      const deliveryRes = await fetch(`${API_BASE}/delivery-check?${deliveryParams.toString()}`);
+      if (!deliveryRes.ok) throw new Error(await deliveryRes.text());
+      const deliveryData = await deliveryRes.json();
+      if (!deliveryData.available) {
+        const nextDate = deliveryData.next_available_date ? ` Next available date: ${deliveryData.next_available_date}.` : '';
+        throw new Error(`${deliveryData.reason || `Delivery is unavailable to ${deliveryCity} on this date.`}${nextDate}`);
+      }
+      setValidatedDeliveryFee(typeof deliveryData.rate === 'number' ? deliveryData.rate : 0);
+
       const payload = {
         cart: cartItems.map((item) => ({
           productId: item.product_id,
@@ -99,7 +119,6 @@ export const CartSidebar: React.FC<CartSidebarProps> = ({ isOpen, onClose, isPer
         grandTotal: data.summary.grand_total,
         currency: data.summary.currency,
       });
-      clearCart();
     } catch (err: unknown) {
       setErrorMsg(err instanceof Error ? err.message : 'Failed to create checkout session. Verify the backend is running.');
     } finally {
@@ -262,7 +281,10 @@ export const CartSidebar: React.FC<CartSidebarProps> = ({ isOpen, onClose, isPer
               <div className="grid gap-3">
                 <input className={inputClass} required placeholder="Street address" value={deliveryAddress} onChange={(event) => setDeliveryAddress(event.target.value)} />
                 <div className="grid grid-cols-2 gap-3">
-                  <input className={inputClass} required placeholder="City, e.g. Colombo 03" value={deliveryCity} onChange={(event) => setDeliveryCity(event.target.value)} />
+                  <input className={inputClass} required placeholder="City, e.g. Colombo 03" value={deliveryCity} onChange={(event) => {
+                    setDeliveryCity(event.target.value);
+                    setValidatedDeliveryFee(null);
+                  }} />
                   <select
                     className={inputClass}
                     value={deliveryLocType}
@@ -277,7 +299,10 @@ export const CartSidebar: React.FC<CartSidebarProps> = ({ isOpen, onClose, isPer
                     <option value="other">Other</option>
                   </select>
                 </div>
-                <input className={inputClass} type="date" required value={deliveryDate} onChange={(event) => setDeliveryDate(event.target.value)} />
+                <input className={inputClass} type="date" min={today} required value={deliveryDate} onChange={(event) => {
+                  setDeliveryDate(event.target.value);
+                  setValidatedDeliveryFee(null);
+                }} />
                 <input className={inputClass} placeholder="Delivery instructions" value={deliveryInstructions} onChange={(event) => setDeliveryInstructions(event.target.value)} />
               </div>
             </section>
@@ -306,12 +331,8 @@ export const CartSidebar: React.FC<CartSidebarProps> = ({ isOpen, onClose, isPer
               <span className="font-bold text-white">LKR {cartTotal.toLocaleString()}</span>
             </div>
             <div className="flex justify-between text-indigo-100/65">
-              <span>Delivery estimate</span>
-              <span className="font-bold text-white">LKR {deliveryFee.toLocaleString()}</span>
-            </div>
-            <div className="flex justify-between text-emerald-300">
-              <span>Demo discount</span>
-              <span className="font-bold">- LKR {discountVal.toLocaleString()}</span>
+              <span>{validatedDeliveryFee === null ? 'Delivery calculated at checkout' : 'Delivery fee'}</span>
+              <span className="font-bold text-white">{validatedDeliveryFee === null ? '--' : `LKR ${deliveryFee.toLocaleString()}`}</span>
             </div>
             <div className="my-3 h-px bg-violet-300/16" />
             <div className="flex items-end justify-between">

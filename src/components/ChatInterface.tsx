@@ -465,12 +465,55 @@ export const ChatInterface: React.FC = () => {
     const text = input.trim();
     if (!text || isLoading) return;
 
+    const recentProducts = [...messages]
+      .reverse()
+      .find((message) => message.products?.length)?.products;
+    const ordinalMatch = text.toLowerCase().match(
+      /\b(?:add|දාන්න|දානවා|cart)\s+(?:the\s+)?(first|1st|one|second|2nd|two|third|3rd|three)\b/
+    );
+    const ordinalIndex: Record<string, number> = {
+      first: 0,
+      '1st': 0,
+      one: 0,
+      second: 1,
+      '2nd': 1,
+      two: 1,
+      third: 2,
+      '3rd': 2,
+      three: 2,
+    };
+
+    if (ordinalMatch && recentProducts?.length) {
+      const product = recentProducts[ordinalIndex[ordinalMatch[1]]];
+      if (product) {
+        addMessage('user', text);
+        addToCart({
+          product_id: product.id,
+          name: product.name,
+          price: product.price.amount,
+          currency: product.price.currency,
+          image_url: product.image_url,
+        });
+        addMessage('agent', `Added **${product.name}** to your cart. You can change the quantity or continue to delivery.`);
+        setInputText('');
+        setIsCartOpen(true);
+        return;
+      }
+    }
+
     const historyPayload = messages
       .filter((message) => message.id !== 'welcome' && message.type !== 'error')
       .slice(-10)
       .map((message) => ({
         role: message.sender === 'user' ? 'user' : 'model',
-        text: message.text,
+        text: message.products?.length
+          ? `${message.text}\n\nVisible products:\n${message.products
+              .map(
+                (product, index) =>
+                  `${index + 1}. ${product.name} | product_id: ${product.id} | ${product.price.currency} ${product.price.amount} | ${product.in_stock ? 'in stock' : 'out of stock'}`
+              )
+              .join('\n')}`
+          : message.text,
       }));
 
     addMessage('user', text);
