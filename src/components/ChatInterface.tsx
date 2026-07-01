@@ -526,11 +526,12 @@ export const ChatInterface: React.FC = () => {
 
     const historyPayload = messages
       .filter((message) => message.id !== 'welcome' && message.type !== 'error')
-      .slice(-10)
+      .slice(-6)
       .map((message) => ({
         role: message.sender === 'user' ? 'user' : 'model',
         text: message.products?.length
           ? `${message.text}\n\nVisible products:\n${message.products
+              .slice(0, 3)
               .map(
                 (product, index) =>
                   `${index + 1}. ${product.name} | product_id: ${product.id} | ${product.price.currency} ${product.price.amount} | ${product.in_stock ? 'in stock' : 'out of stock'}`
