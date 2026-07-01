@@ -4,7 +4,12 @@ import {
   Camera,
   Check,
   ChevronRight,
+  CircleHelp,
+  CreditCard,
   Gift,
+  Grid2X2,
+  History,
+  LayoutDashboard,
   MapPin,
   Mic,
   Moon,
@@ -26,6 +31,10 @@ import BotAvatar from './BotAvatar';
 import CategoryTicker from './CategoryTicker';
 
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:5141/api/shopping';
+
+// Keep the original competition layout available without deleting its panels or ticker.
+// Switch this to true to restore the immersive sidebars and floating category bubbles.
+const ENABLE_IMMERSIVE_LAYOUT = false;
 
 const getApiErrorMessage = async (response: Response): Promise<string> => {
   try {
@@ -149,7 +158,7 @@ const UserAvatar: React.FC = () => (
   </div>
 );
 
-const KaprukaLogo: React.FC<{ compact?: boolean }> = ({ compact = false }) => (
+const KaprukaLogo: React.FC<{ compact?: boolean; hideBadge?: boolean }> = ({ compact = false, hideBadge = false }) => (
   <div className={`flex min-w-0 items-center ${compact ? 'gap-2' : 'gap-3'}`}>
     <div className={`neon-primary flex shrink-0 items-center justify-center rounded-xl text-white ${compact ? 'h-10 w-10' : 'h-11 w-11'}`}>
       <ShoppingBag className="h-5 w-5" />
@@ -157,11 +166,13 @@ const KaprukaLogo: React.FC<{ compact?: boolean }> = ({ compact = false }) => (
     <div className="min-w-0">
       <div className="flex items-center gap-1.5">
         <span className={`${compact ? 'text-sm' : 'text-base'} whitespace-nowrap font-black tracking-tight text-white`}>Kapruka AI</span>
-        <span className={`${compact ? 'hidden min-[430px]:inline-flex' : 'inline-flex'} rounded-full bg-violet-500/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-violet-100 ring-1 ring-violet-300/30`}>
+        <span className={`${hideBadge ? 'hidden' : compact ? 'hidden min-[430px]:inline-flex' : 'inline-flex'} rounded-full bg-violet-500/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-violet-100 ring-1 ring-violet-300/30`}>
           Live MCP
         </span>
       </div>
-      <p className={`${compact ? 'hidden min-[520px]:block' : 'block'} truncate text-xs font-medium text-indigo-200/70`}>Sri Lanka's shopping concierge</p>
+      <p className={`${compact && !hideBadge ? 'hidden min-[520px]:block' : 'block'} truncate text-xs font-medium text-indigo-200/70`}>
+        {compact ? 'Shopping concierge' : "Sri Lanka's shopping concierge"}
+      </p>
     </div>
   </div>
 );
@@ -646,18 +657,22 @@ export const ChatInterface: React.FC = () => {
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
-      addMessage('agent', `Sorry, ${message}`, 'error');
+      const friendlyMessage =
+        message === 'Failed to fetch'
+          ? 'I cannot reach the shopping service right now. Please make sure the local backend is running, then try again.'
+          : `Sorry, ${message}`;
+      addMessage('agent', friendlyMessage, 'error');
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className={`app-grid-bg relative flex h-screen w-full overflow-hidden font-sans text-white ${theme === 'light' ? 'theme-light' : 'theme-dark'}`}>
-      <div className="app-ambient pointer-events-none absolute inset-0" />
-      <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-violet-500 via-fuchsia-500 to-cyan-400" />
+    <div className={`app-grid-bg ${ENABLE_IMMERSIVE_LAYOUT ? '' : 'chat-simple'} relative flex h-screen w-full overflow-hidden font-sans text-white ${theme === 'light' ? 'theme-light' : 'theme-dark'}`}>
+      <div className={`${ENABLE_IMMERSIVE_LAYOUT ? '' : 'hidden'} app-ambient pointer-events-none absolute inset-0`} />
+      <div className={`${ENABLE_IMMERSIVE_LAYOUT ? '' : 'hidden'} absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-violet-500 via-fuchsia-500 to-cyan-400`} />
 
-      <section className="neon-panel relative z-10 m-3 hidden w-[18rem] shrink-0 flex-col rounded-2xl px-4 py-5 backdrop-blur-xl xl:flex 2xl:w-[19rem]">
+      <section className={`${ENABLE_IMMERSIVE_LAYOUT ? 'xl:flex' : 'hidden'} neon-panel relative z-10 m-3 w-[18rem] shrink-0 flex-col rounded-2xl px-4 py-5 backdrop-blur-xl 2xl:w-[19rem]`}>
         <KaprukaLogo />
 
         <div className="mt-5 rounded-2xl border border-violet-300/18 bg-white/[0.035] p-4 shadow-sm">
@@ -713,13 +728,67 @@ export const ChatInterface: React.FC = () => {
         </div>
       </section>
 
+      {!ENABLE_IMMERSIVE_LAYOUT && (
+        <aside className="commerce-sidebar relative z-10 hidden w-[14rem] shrink-0 flex-col border-r md:flex">
+          <div className="flex h-[4.5rem] shrink-0 items-center border-b px-4">
+            <div className="flex min-w-0 items-center gap-2.5">
+              <div className="neon-primary flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white">
+                <ShoppingBag className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="whitespace-nowrap text-sm font-black text-white">Kapruka AI</p>
+                <p className="whitespace-nowrap text-[11px] font-medium text-indigo-200/65">Shopping concierge</p>
+              </div>
+            </div>
+          </div>
+
+          <nav className="flex flex-1 flex-col gap-1.5 px-3 py-5">
+            <button type="button" className="commerce-nav-item is-active">
+              <LayoutDashboard className="h-4 w-4" />
+              Dashboard
+            </button>
+            <button type="button" onClick={() => handleCommand('Show me popular Kapruka products')} className="commerce-nav-item">
+              <Grid2X2 className="h-4 w-4" />
+              Discovery
+            </button>
+            <button type="button" onClick={() => setIsCartOpen(true)} className="commerce-nav-item">
+              <CreditCard className="h-4 w-4" />
+              Checkout
+            </button>
+            <button type="button" onClick={() => handleCommand('Help me track a Kapruka order')} className="commerce-nav-item">
+              <History className="h-4 w-4" />
+              Orders
+            </button>
+          </nav>
+
+          <div className="m-3 rounded-xl bg-blue-50 p-3 text-blue-950">
+            <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wide text-blue-700">
+              <CircleHelp className="h-4 w-4" />
+              AI shopping tip
+            </div>
+            <p className="mt-2 text-xs leading-5 text-slate-600">Ask me to compare products, check delivery, or build a gift-ready cart.</p>
+          </div>
+        </aside>
+      )}
+
       <section className="relative z-10 flex min-w-0 flex-1 flex-col">
-        <header className="theme-header mx-3 mt-3 flex h-[4.5rem] shrink-0 items-center justify-between rounded-2xl border border-violet-300/18 bg-slate-950/58 px-4 shadow-xl shadow-black/20 backdrop-blur-xl sm:px-6 lg:px-8">
-          <div className="min-w-0 xl:hidden">
+        <header className={`theme-header flex h-[4.5rem] shrink-0 items-center justify-between px-4 sm:px-6 lg:px-8 ${
+          ENABLE_IMMERSIVE_LAYOUT
+            ? 'mx-3 mt-3 rounded-2xl border border-violet-300/18 bg-slate-950/58 shadow-xl shadow-black/20 backdrop-blur-xl'
+            : 'border-b border-white/10 bg-transparent'
+        }`}>
+          <div className={`min-w-0 ${ENABLE_IMMERSIVE_LAYOUT ? 'xl:hidden' : 'md:hidden'}`}>
             <KaprukaLogo compact />
           </div>
 
-          <div className="hidden items-center gap-2 rounded-full border border-violet-300/20 bg-white/[0.04] px-2 py-1 text-xs font-bold text-indigo-200/70 shadow-sm md:flex xl:flex">
+          {!ENABLE_IMMERSIVE_LAYOUT && (
+            <div className="hidden md:block">
+              <h1 className="text-lg font-black text-white">Kapruka AI Assistant</h1>
+              <p className="text-xs font-medium text-indigo-200/60">Your personal shopping concierge</p>
+            </div>
+          )}
+
+          <div className={`${ENABLE_IMMERSIVE_LAYOUT ? 'md:flex xl:flex' : 'hidden'} items-center gap-2 rounded-full border border-violet-300/20 bg-white/[0.04] px-2 py-1 text-xs font-bold text-indigo-200/70 shadow-sm`}>
             {[
               ['discover', 'Discover'],
               ['cart', 'Cart'],
@@ -773,8 +842,8 @@ export const ChatInterface: React.FC = () => {
         </header>
 
         <div className="flex min-h-0 flex-1">
-          <main className="relative flex min-w-0 flex-1 flex-col">
-            <div ref={chatContainerRef} className="min-h-0 flex-1 space-y-5 overflow-y-auto px-3 py-4 sm:space-y-6 sm:px-6 sm:py-6 lg:px-10">
+          <main className={`relative mx-auto flex min-w-0 flex-1 flex-col ${ENABLE_IMMERSIVE_LAYOUT ? '' : 'w-full max-w-5xl'}`}>
+            <div ref={chatContainerRef} className="min-h-0 flex-1 space-y-5 overflow-y-auto px-3 py-4 sm:space-y-6 sm:px-8 sm:py-8 lg:px-12">
               {messages.map((message) => (
                 <div key={message.id} className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
                   <div
@@ -790,7 +859,7 @@ export const ChatInterface: React.FC = () => {
 
                     <div className={`min-w-0 ${message.sender === 'user' ? 'items-end' : 'items-start'} flex flex-col gap-2`}>
                       <div
-                        className={`chat-glass rounded-2xl px-5 py-4 ${
+                        className={`chat-glass ${message.sender === 'user' ? 'simple-user-message' : 'simple-agent-message'} rounded-2xl px-4 py-3 sm:px-5 sm:py-4 ${
                           message.sender === 'user'
                             ? 'user-message rounded-tr-md text-white'
                             : message.type === 'error'
@@ -888,7 +957,11 @@ export const ChatInterface: React.FC = () => {
               )}
             </div>
 
-            <footer className="theme-footer mx-2 mb-2 shrink-0 rounded-2xl border border-violet-300/18 bg-slate-950/50 px-3 py-3 shadow-xl shadow-black/20 backdrop-blur-xl sm:mx-3 sm:mb-3 sm:px-6 sm:py-4 lg:px-10">
+            <footer className={`theme-footer shrink-0 px-3 py-3 sm:px-8 sm:py-4 lg:px-12 ${
+              ENABLE_IMMERSIVE_LAYOUT
+                ? 'mx-2 mb-2 rounded-2xl border border-violet-300/18 bg-slate-950/50 shadow-xl shadow-black/20 backdrop-blur-xl sm:mx-3 sm:mb-3'
+                : 'bg-transparent'
+            }`}>
               <div className="-mx-2 mb-1 flex gap-2 overflow-x-auto px-2 pb-3 pt-2">
                 {getContextSuggestions().map((suggestion) => (
                   <button
@@ -963,7 +1036,7 @@ export const ChatInterface: React.FC = () => {
             </footer>
           </main>
 
-          <aside className="relative my-3 mr-3 hidden w-[18rem] shrink-0 overflow-hidden rounded-2xl xl:block 2xl:w-[23rem]">
+          <aside className={`${ENABLE_IMMERSIVE_LAYOUT ? 'xl:block' : 'hidden'} relative my-3 mr-3 w-[18rem] shrink-0 overflow-hidden rounded-2xl 2xl:w-[23rem]`}>
             <CategoryTicker onCategorySelect={handleCommand} />
           </aside>
         </div>
