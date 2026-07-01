@@ -86,8 +86,6 @@ const DISCOVERY_SHORTCUTS = [
   },
 ];
 
-const LOADING_STEPS = ['Searching Kapruka...', 'Checking delivery coverage...', 'Finding best offers...'];
-
 type SpeechRecognitionConstructor = new () => {
   continuous: boolean;
   interimResults: boolean;
@@ -151,19 +149,19 @@ const UserAvatar: React.FC = () => (
   </div>
 );
 
-const KaprukaLogo: React.FC = () => (
-  <div className="flex items-center gap-3">
-    <div className="neon-primary flex h-11 w-11 items-center justify-center rounded-xl text-white">
+const KaprukaLogo: React.FC<{ compact?: boolean }> = ({ compact = false }) => (
+  <div className={`flex min-w-0 items-center ${compact ? 'gap-2' : 'gap-3'}`}>
+    <div className={`neon-primary flex shrink-0 items-center justify-center rounded-xl text-white ${compact ? 'h-10 w-10' : 'h-11 w-11'}`}>
       <ShoppingBag className="h-5 w-5" />
     </div>
-    <div>
-      <div className="flex items-center gap-2">
-        <span className="text-base font-black tracking-tight text-white">Kapruka AI</span>
-        <span className="rounded-full bg-violet-500/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-violet-100 ring-1 ring-violet-300/30">
+    <div className="min-w-0">
+      <div className="flex items-center gap-1.5">
+        <span className={`${compact ? 'text-sm' : 'text-base'} whitespace-nowrap font-black tracking-tight text-white`}>Kapruka AI</span>
+        <span className={`${compact ? 'hidden min-[430px]:inline-flex' : 'inline-flex'} rounded-full bg-violet-500/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-violet-100 ring-1 ring-violet-300/30`}>
           Live MCP
         </span>
       </div>
-      <p className="text-xs font-medium text-indigo-200/70">Sri Lanka's shopping concierge</p>
+      <p className={`${compact ? 'hidden min-[520px]:block' : 'block'} truncate text-xs font-medium text-indigo-200/70`}>Sri Lanka's shopping concierge</p>
     </div>
   </div>
 );
@@ -296,7 +294,7 @@ const renderFormattedMessage = (text: string) => {
 };
 
 export const ChatInterface: React.FC = () => {
-  const { cartItems, addToCart, cartCount } = useCart();
+  const { cartItems, addToCart, removeFromCart, updateQuantity, cartCount } = useCart();
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
     const savedTheme = window.localStorage.getItem('kapruka-theme');
     if (savedTheme === 'dark' || savedTheme === 'light') return savedTheme;
@@ -482,6 +480,31 @@ export const ChatInterface: React.FC = () => {
       '3rd': 2,
       three: 2,
     };
+    const cartOrdinalMatch = text.toLowerCase().match(
+      /\b(remove|delete|quantity|qty|make)\s+(?:the\s+)?(first|1st|one|second|2nd|two|third|3rd|three)(?:\s+(?:one|item))?(?:\s+(?:quantity|qty|to|as))?\s*(\d+)?\b/
+    );
+
+    if (cartOrdinalMatch && cartItems.length) {
+      const item = cartItems[ordinalIndex[cartOrdinalMatch[2]]];
+      if (item) {
+        addMessage('user', text);
+        if (cartOrdinalMatch[1] === 'remove' || cartOrdinalMatch[1] === 'delete') {
+          removeFromCart(item.product_id);
+          addMessage('agent', `Removed **${item.name}** from your cart.`);
+        } else {
+          const quantity = Number(cartOrdinalMatch[3]);
+          if (Number.isInteger(quantity) && quantity > 0 && quantity <= 20) {
+            updateQuantity(item.product_id, quantity);
+            addMessage('agent', `Updated **${item.name}** to **${quantity}** in your cart.`);
+          } else {
+            addMessage('agent', `What quantity would you like for **${item.name}**? You can say “make the first item quantity 2”.`);
+          }
+        }
+        setInputText('');
+        setIsCartOpen(true);
+        return;
+      }
+    }
 
     if (ordinalMatch && recentProducts?.length) {
       const product = recentProducts[ordinalIndex[ordinalMatch[1]]];
@@ -691,8 +714,8 @@ export const ChatInterface: React.FC = () => {
 
       <section className="relative z-10 flex min-w-0 flex-1 flex-col">
         <header className="theme-header mx-3 mt-3 flex h-[4.5rem] shrink-0 items-center justify-between rounded-2xl border border-violet-300/18 bg-slate-950/58 px-4 shadow-xl shadow-black/20 backdrop-blur-xl sm:px-6 lg:px-8">
-          <div className="xl:hidden">
-            <KaprukaLogo />
+          <div className="min-w-0 xl:hidden">
+            <KaprukaLogo compact />
           </div>
 
           <div className="hidden items-center gap-2 rounded-full border border-violet-300/20 bg-white/[0.04] px-2 py-1 text-xs font-bold text-indigo-200/70 shadow-sm md:flex xl:flex">
@@ -712,7 +735,7 @@ export const ChatInterface: React.FC = () => {
             ))}
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex shrink-0 items-center gap-2 sm:gap-3">
             <button
               type="button"
               onClick={() => setTheme((current) => (current === 'dark' ? 'light' : 'dark'))}
@@ -731,7 +754,7 @@ export const ChatInterface: React.FC = () => {
             </button>
             <button
               onClick={() => setIsCartOpen(!isCartOpen)}
-              className={`focus-ring relative flex items-center gap-2 rounded-full px-4 py-2 text-xs font-extrabold shadow-sm transition ${
+              className={`focus-ring relative flex h-10 items-center gap-2 rounded-full px-3 text-xs font-extrabold shadow-sm transition sm:px-4 ${
                 isCartPopping
                   ? 'neon-primary scale-105 text-white'
                   : 'border border-violet-300/20 bg-white/[0.04] text-indigo-100 hover:border-violet-300/50'
@@ -750,11 +773,11 @@ export const ChatInterface: React.FC = () => {
 
         <div className="flex min-h-0 flex-1">
           <main className="relative flex min-w-0 flex-1 flex-col">
-            <div ref={chatContainerRef} className="min-h-0 flex-1 space-y-6 overflow-y-auto px-4 py-6 sm:px-6 lg:px-10">
+            <div ref={chatContainerRef} className="min-h-0 flex-1 space-y-5 overflow-y-auto px-3 py-4 sm:space-y-6 sm:px-6 sm:py-6 lg:px-10">
               {messages.map((message) => (
                 <div key={message.id} className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
                   <div
-                    className={`flex max-w-[94%] items-start gap-3 ${
+                    className={`flex max-w-full items-start gap-2.5 sm:max-w-[94%] sm:gap-3 ${
                       message.sender === 'user'
                         ? 'flex-row-reverse sm:max-w-[72%]'
                         : message.type === 'products'
@@ -820,21 +843,22 @@ export const ChatInterface: React.FC = () => {
                 <div className="flex justify-start">
                   <div className="flex max-w-xl items-start gap-3">
                     <BotAvatar />
-                    <div className="chat-glass rounded-2xl rounded-tl-md px-5 py-4">
+                    <div className="chat-glass rounded-2xl rounded-tl-md px-4 py-3.5 sm:px-5 sm:py-4">
                       <div className="mb-3 flex items-center gap-2 text-xs font-black uppercase tracking-[0.18em] text-violet-200">
                         <WandSparkles className="h-4 w-4 animate-pulse" />
-                        Agent thinking
+                        Kapruka AI is working on it
                       </div>
-                      <div className="space-y-2.5">
-                        {LOADING_STEPS.map((step, index) => (
-                          <div key={step} className="flex items-center gap-2 text-sm font-semibold text-indigo-100/75">
+                      <div className="flex items-center gap-2 text-sm font-semibold text-indigo-100/75">
+                        <span>Understanding your request</span>
+                        <span className="flex gap-1">
+                          {[0, 1, 2].map((index) => (
                             <span
+                              key={index}
                               className="h-2 w-2 rounded-full bg-cyan-300 shadow-[0_0_14px_rgba(34,211,238,0.75)]"
                               style={{ animation: `loadingPulse 1.4s ease-in-out ${index * 0.18}s infinite` }}
                             />
-                            {step}
-                          </div>
-                        ))}
+                          ))}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -842,14 +866,14 @@ export const ChatInterface: React.FC = () => {
               )}
 
               {messages.length === 1 && !isLoading && (
-                <div className="ml-12 grid max-w-5xl gap-4 md:grid-cols-3 xl:max-w-4xl 2xl:max-w-5xl">
+                <div className="-mx-3 flex snap-x snap-mandatory gap-3 overflow-x-auto px-3 pb-2 sm:mx-0 sm:ml-12 sm:px-0 md:grid md:max-w-5xl md:grid-cols-3 md:overflow-visible md:pb-0 xl:max-w-4xl 2xl:max-w-5xl">
                   {DISCOVERY_SHORTCUTS.map((shortcut) => {
                     const Icon = shortcut.icon;
                     return (
                       <button
                         key={shortcut.title}
                         onClick={() => handleCommand(shortcut.cmd)}
-                        className="glass-card group rounded-2xl p-4 text-left transition hover:-translate-y-1"
+                        className="glass-card group min-w-[15.5rem] snap-center rounded-2xl p-4 text-left transition hover:-translate-y-1 md:min-w-0"
                       >
                         <span className="neon-primary mb-4 flex h-11 w-11 items-center justify-center rounded-xl text-white">
                           <Icon className="h-5 w-5" />
@@ -863,7 +887,7 @@ export const ChatInterface: React.FC = () => {
               )}
             </div>
 
-            <footer className="theme-footer mx-3 mb-3 shrink-0 rounded-2xl border border-violet-300/18 bg-slate-950/50 px-4 py-4 shadow-xl shadow-black/20 backdrop-blur-xl sm:px-6 lg:px-10">
+            <footer className="theme-footer mx-2 mb-2 shrink-0 rounded-2xl border border-violet-300/18 bg-slate-950/50 px-3 py-3 shadow-xl shadow-black/20 backdrop-blur-xl sm:mx-3 sm:mb-3 sm:px-6 sm:py-4 lg:px-10">
               <div className="-mx-2 mb-1 flex gap-2 overflow-x-auto px-2 pb-3 pt-2">
                 {getContextSuggestions().map((suggestion) => (
                   <button
@@ -882,12 +906,12 @@ export const ChatInterface: React.FC = () => {
                   event.preventDefault();
                   handleCommand(inputText);
                 }}
-                className="ai-input-glass flex items-center gap-3 rounded-2xl p-2"
+                className="ai-input-glass flex items-center gap-1.5 rounded-2xl p-1.5 sm:gap-3 sm:p-2"
               >
                 <button
                   type="button"
                   onClick={() => handleCommand('Show me Kapruka AI shopping tools')}
-                  className="focus-ring neon-primary flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white"
+                  className="focus-ring neon-primary flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white sm:h-11 sm:w-11"
                   title="AI shopping tools"
                 >
                   <Sparkles className="h-5 w-5" />
@@ -912,7 +936,7 @@ export const ChatInterface: React.FC = () => {
                 )}
 
                 <div className="flex items-center gap-1">
-                  <button type="button" className="focus-ring flex h-10 w-10 items-center justify-center rounded-full text-indigo-200/60 transition hover:bg-white/10 hover:text-white" title="Attach product photo">
+                  <button type="button" className="focus-ring hidden h-10 w-10 items-center justify-center rounded-full text-indigo-200/60 transition hover:bg-white/10 hover:text-white sm:flex" title="Attach product photo">
                     <Camera className="h-4 w-4" />
                   </button>
                   <button
